@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32929.385
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScraperFunction", "ScraperFunction\ScraperFunction.csproj", "{98EB751E-A152-48A1-9935-EF82E1C6430A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TranslatorFunction", "TranslatorFunction\TranslatorFunction.csproj", "{DD0AB3C3-B3D0-4088-9032-356067939B57}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MyAnalyticsLibrary", "MyAnalyticsLibrary\MyAnalyticsLibrary.csproj", "{B69F8DF5-7AA9-4BD6-A83B-64D1492054F0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WikiScraper", "WikiScraper\WikiScraper.csproj", "{03AF0EF6-119F-4ADE-92CF-00BB5115C4EE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{98EB751E-A152-48A1-9935-EF82E1C6430A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98EB751E-A152-48A1-9935-EF82E1C6430A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98EB751E-A152-48A1-9935-EF82E1C6430A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98EB751E-A152-48A1-9935-EF82E1C6430A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD0AB3C3-B3D0-4088-9032-356067939B57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD0AB3C3-B3D0-4088-9032-356067939B57}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD0AB3C3-B3D0-4088-9032-356067939B57}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD0AB3C3-B3D0-4088-9032-356067939B57}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B69F8DF5-7AA9-4BD6-A83B-64D1492054F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B69F8DF5-7AA9-4BD6-A83B-64D1492054F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B69F8DF5-7AA9-4BD6-A83B-64D1492054F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B69F8DF5-7AA9-4BD6-A83B-64D1492054F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{03AF0EF6-119F-4ADE-92CF-00BB5115C4EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{03AF0EF6-119F-4ADE-92CF-00BB5115C4EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{03AF0EF6-119F-4ADE-92CF-00BB5115C4EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{03AF0EF6-119F-4ADE-92CF-00BB5115C4EE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5DCDB4DC-918A-489A-8C33-6B159E4C3E34}
+	EndGlobalSection
+EndGlobal
