@@ -10,6 +10,9 @@ using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using static WikiScraper.WikiData;
 using System.Collections;
+using System.Text.Json;
+using Azure.Data.Tables;
+using Azure;
 
 namespace WikiScraper
 {
@@ -18,7 +21,7 @@ namespace WikiScraper
     {
         //collection of data for an entire day
         public class DailyCollection
-        { 
+        {
             public List<DailyData> wikiDataList { get; set; }
 
             public List<FeaturedArticle> featuredList { get; set; }
@@ -32,12 +35,12 @@ namespace WikiScraper
                 {
                     wikiDataList = new List<DailyData>(),
                     featuredList = new List<FeaturedArticle>(),
-                    date = $"{ _date.Year}{_date.Month:D2}{_date.Day:D2}"
+                    date = $"{_date.Year}{_date.Month:D2}{_date.Day:D2}"
                 };
 
                 foreach (string iCountry in _countryCodes)
                 {
-                    
+
                     var viewsString = await _client.GetStringAsync(
                         "https://wikimedia.org/api/rest_v1/metrics/pageviews/" +
                         $"aggregate/{iCountry}.wikipedia.org/all-access/user/daily/" +
@@ -80,7 +83,7 @@ namespace WikiScraper
                     GetRange(0, popularArticles.Count > topAmount ? topAmount : popularArticles.Count);
 
                 //get langlinks to english article
-                foreach(FeaturedArticle article in popularArticles)
+                foreach (FeaturedArticle article in popularArticles)
                 {
                     article.oglink = "https://" + article.countryCode + ".wikipedia.org/wiki/" + article.name;
                     if (article.countryCode == "en")
@@ -94,14 +97,11 @@ namespace WikiScraper
                         //couldnt get the key other than through enumerator
                         IEnumerator enumerator = langlinkObj["query"]["pages"].AsObject().GetEnumerator();
                         enumerator.MoveNext();
-                        var test = ((KeyValuePair<string, JsonNode>)enumerator.Current);
-                        var test2 = test.Value["langlinks"];
-                        var test3 = test2[0];
-                        var test4 = test3["*"];
-                        article.enlink = "https://en.wikipedia.org/wiki/" + test4;
+                        var test2 = ((KeyValuePair<string, JsonNode>)enumerator.Current).Value["langlinks"][0]["*"];
+                        article.enlink = "https://en.wikipedia.org/wiki/" + test2;
                     }
-                    
-                    
+
+
                 }
                 resultCollection.featuredList = popularArticles;
 
@@ -117,6 +117,21 @@ namespace WikiScraper
                     result += iFeatured.ToString() + '\n';
                 }
                 return result;
+            }
+
+            public string ToJSON()
+            {
+                return JsonSerializer.Serialize(this);
+            }
+
+            public class TableCollectionEntity:ITableEntity
+            {
+                public string PartitionKey { get; set; }
+                public string RowKey { get; set; }
+                public DateTimeOffset? Timestamp { get; set; }
+                public ETag ETag { get; set; }
+
+                public DailyCollection Collection { get; set; }
             }
         }
 

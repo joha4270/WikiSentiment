@@ -15,6 +15,9 @@ using System.Runtime.ExceptionServices;
 using System.Collections.Generic;
 using System.Net.Http.Headers;
 using System.Net.Http;
+using Azure.Data.Tables;
+using System.Collections.Concurrent;
+using Azure;
 
 namespace WikiScraper
 {
@@ -35,27 +38,30 @@ namespace WikiScraper
         [FunctionName("Function1")]
         public async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
-            [Queue("myqueue-messages"), StorageAccount("AzureTranslatorQueue")] ICollector<string> ms
+            [Table("sentimenttable"), StorageAccount("AzureWebJobsStorage")] TableClient client, 
             ILogger log)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
+
             
+            log.LogInformation("C# HTTP trigger function processed a request.");
+
             //Initiate http getter, pass it base uri from config file
-            WikiJSON wiki = new WikiJSON(
-                config.GetValue<string>("FunctionValues:WikiBaseUri"), 
-                config.GetValue<string>("FunctionValues:WikiUserContact"),
-                config.GetValue<string>("FunctionValues:WikiAPIToken"));
 
             //WikiJSON.RootJSON wr = await wiki.GetEntry(country, year, month, day);
 
-            string dateString = "2022-11-30";
-            if (!DateTime.TryParse(dateString, out var date))
-            {
-                log.LogError($"Date conversion error (time string:{dateString})");
-                return new BadRequestObjectResult($"Date conversion error (time string:{dateString})");
-            }
-
+            var date = DateTime.Today.AddDays(-1);
+           
             var collection = await DailyCollection.BuildCollection(date, countrycodes, countryExceptions, getHttpClient(config));
+            var tableEntity = new TableEntity()
+            {
+                PartitionKey = "main",
+                RowKey = $"{ date.Year }{date.Month:D2}{date.Day:D2}"
+            };
+            tableEntity.Add("Collection", collection.ToJSON());
+
+            await client.UpsertEntityAsync(tableEntity);
+            //var getting = await client.GetEntityAsync<TableEntity>(val.PartitionKey, val.RowKey);
+            //var test = System.Text.Json.JsonSerializer.Deserialize<DailyCollection>(getting.Value.GetString("Collection"));
 
             return new OkObjectResult(collection.ToString());
         }
