@@ -41,29 +41,59 @@ namespace WikiScraper
             [Table("sentimenttable"), StorageAccount("AzureWebJobsStorage")] TableClient client, 
             ILogger log)
         {
-
-            
             log.LogInformation("C# HTTP trigger function processed a request.");
+
+            bool forceRebuild = true;
+            var date = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day - 2);
+            int backlog = 2;
+
+
+            TotalCollection tCollection = new TotalCollection() { dailyData = new Dictionary<string, DailyCollection>() };
+
+            if (forceRebuild)
+            {
+                while (backlog != 0)
+                {
+                    tCollection.dailyData[$"{date.Year}{date.Month:D2}{date.Day:D2}"] =
+                        await DailyCollection.BuildCollection(date, countrycodes, countryExceptions, getHttpClient(config));
+                    date = date.AddDays(-1);
+                    backlog -= 1;
+                }
+            }
+            else
+            {
+                tCollection.dailyData[$""] = await DailyCollection.BuildCollection(date, countrycodes, countryExceptions, getHttpClient(config));
+            }
+
 
             //Initiate http getter, pass it base uri from config file
 
             //WikiJSON.RootJSON wr = await wiki.GetEntry(country, year, month, day);
 
-            var date = DateTime.Today.AddDays(-1);
-           
-            var collection = await DailyCollection.BuildCollection(date, countrycodes, countryExceptions, getHttpClient(config));
-            var tableEntity = new TableEntity()
-            {
-                PartitionKey = "main",
-                RowKey = $"{ date.Year }{date.Month:D2}{date.Day:D2}"
-            };
-            tableEntity.Add("Collection", collection.ToJSON());
 
-            await client.UpsertEntityAsync(tableEntity);
+
+            //var tableEntity = new TableEntity()
+            //{
+            //PartitionKey = "main",
+            //RowKey = $"{ date.Year }{date.Month:D2}{date.Day:D2}"
+            //};
+            //tableEntity.Add("Collection", collection.ToJSON());
+            var stringTest = tCollection.ToJSON();
+
+            
+
+
+            var uploader = new GithubUploader(
+                config.GetValue<string>("FunctionValues:GitHubToken"));
+            await uploader.Upload(stringTest);
+
+
+            //await client.UpsertEntityAsync(tableEntity);
+
             //var getting = await client.GetEntityAsync<TableEntity>(val.PartitionKey, val.RowKey);
             //var test = System.Text.Json.JsonSerializer.Deserialize<DailyCollection>(getting.Value.GetString("Collection"));
 
-            return new OkObjectResult(collection.ToString());
+            return new OkObjectResult("Done ^_^");
         }
 
         HttpClient getHttpClient(IConfiguration _config)

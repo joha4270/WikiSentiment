@@ -40,7 +40,7 @@ namespace ScraperFunction
 
         string baseURI; //base reddit uri
 
-        HttpClient reddit;zzzz
+        HttpClient reddit;
 
         public RedditJ(string _baseURI)
         {

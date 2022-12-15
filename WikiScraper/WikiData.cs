@@ -5,26 +5,43 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using System.Text.Json.Serialization;
-using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
+
 using static WikiScraper.WikiData;
 using System.Collections;
-using System.Text.Json;
+
 using Azure.Data.Tables;
 using Azure;
+using System.Text.Encodings.Web;
+using System.Reflection;
 
 namespace WikiScraper
 {
     //entry for daily data about wikipedia project with an article split
     public static class WikiData
     {
+        public class TotalCollection
+        {
+            public Dictionary<string, DailyCollection> dailyData { get; set; }
+
+            public string ToJSON()
+            {
+                return JsonSerializer.Serialize(this, new JsonSerializerOptions()
+                {
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                    WriteIndented = false
+                });
+            }
+        }
+
         //collection of data for an entire day
         public class DailyCollection
         {
             public List<DailyData> wikiDataList { get; set; }
 
-            public List<FeaturedArticle> featuredList { get; set; }
+            public List<string> featuredList { get; set; }
 
             public string date { get; set; }
 
@@ -34,105 +51,52 @@ namespace WikiScraper
                 var resultCollection = new DailyCollection()
                 {
                     wikiDataList = new List<DailyData>(),
-                    featuredList = new List<FeaturedArticle>(),
+                    featuredList = new List<string>(),
                     date = $"{_date.Year}{_date.Month:D2}{_date.Day:D2}"
                 };
 
                 foreach (string iCountry in _countryCodes)
                 {
 
-                    var viewsString = await _client.GetStringAsync(
-                        "https://wikimedia.org/api/rest_v1/metrics/pageviews/" +
-                        $"aggregate/{iCountry}.wikipedia.org/all-access/user/daily/" +
-                        $"{_date.Year}{_date.Month:D2}{_date.Day:D2}/{_date.Year}{_date.Month:D2}{_date.Day:D2}");
-                    var viewsObj = JsonNode.Parse(viewsString).AsObject();
-                    var totalviews = viewsObj["items"][0]["views"];
+                    //var viewsString = await _client.GetStringAsync(
+                        //"https://wikimedia.org/api/rest_v1/metrics/pageviews/" +
+                        //$"aggregate/{iCountry}.wikipedia.org/all-access/user/daily/" +
+                        //$"{_date.Year}{_date.Month:D2}{_date.Day:D2}/{_date.Year}{_date.Month:D2}{_date.Day:D2}");
+                    //var viewsObj = JsonNode.Parse(viewsString).AsObject();
+                    //var totalviews = viewsObj["items"][0]["views"];
 
                     //REST request:
                     //wikimedia.org/api/rest_v1/metrics/pageviews/aggregate/ru.wikipedia.org/all-access/user/daily/20221120/20221120
-                    var articlesString = await _client.GetStringAsync(
-                        "https://wikimedia.org/api/rest_v1/metrics/pageviews/" +
-                        $"top/{iCountry}.wikipedia.org/all-access/{_date.Year}/{_date.Month:D2}/{_date.Day:D2}");
+                    //var articlesString = await _client.GetStringAsync(
+                        //"https://wikimedia.org/api/rest_v1/metrics/pageviews/" +
+                        //$"top/{iCountry}.wikipedia.org/all-access/{_date.Year}/{_date.Month:D2}/{_date.Day:D2}");
 
-                    var articlesObj = JsonNode.Parse(articlesString).AsObject();
-                    var articles = articlesObj["items"][0]["articles"];
+                    //var articlesObj = JsonNode.Parse(articlesString).AsObject();
+                    //var articles = articlesObj["items"][0]["articles"];
 
                     resultCollection.wikiDataList.Add(
-                        DailyData.BuildDailyData(iCountry, _exceptions[iCountry].ToArray(), (int)totalviews.AsValue(),
-                        articles, 10));
+                        await DailyData.BuildDailyData(_client, _date, iCountry, _exceptions[iCountry].ToArray(), 5));
                 }
 
-
-                List<FeaturedArticle> popularArticles = new List<FeaturedArticle>();
                 int topAmount = 3;
+                var highlights = new string[topAmount];
 
-                foreach (DailyData iDaily in resultCollection.wikiDataList)
-                {
-                    if (iDaily.articles.Count > 0)
-                        popularArticles.Add(new FeaturedArticle()
-                        {
-                            name = iDaily.articles[0].name,
-                            views = iDaily.articles[0].views,
-                            popularityIndex = iDaily.articles[0].popularityIndex,
-                            countryCode = iDaily.countrycode
-                        });
-                }
+                var topArticles = new List<Article>();
+
+                resultCollection.wikiDataList.ForEach(iDaily => topArticles.Add(iDaily.articles[0]));
+
 
                 //order articles by popularity and flip em
-                popularArticles = popularArticles.OrderBy(article => article.popularityIndex).Reverse().ToList().
-                    GetRange(0, popularArticles.Count > topAmount ? topAmount : popularArticles.Count);
+                topArticles = topArticles.OrderBy(article => article.prc).Reverse().ToList().
+                    GetRange(0, Math.Min(topAmount, topArticles.Count));
 
-                //get langlinks to english article
-                foreach (FeaturedArticle article in popularArticles)
-                {
-                    article.oglink = "https://" + article.countryCode + ".wikipedia.org/wiki/" + article.name;
-                    if (article.countryCode == "en")
-                        article.enlink = article.oglink;
-                    else
-                    {
-                        var langlinks = await _client.GetStringAsync(
-                            $"https://{article.countryCode}.wikipedia.org/w/api.php?action=query&titles={article.name}&prop=langlinks&format=json&lllang=en");
-                        var langlinkObj = JsonNode.Parse(langlinks).AsObject();
+                topArticles.ForEach(article => resultCollection.featuredList.Add(article.cde));
 
-                        //couldnt get the key other than through enumerator
-                        IEnumerator enumerator = langlinkObj["query"]["pages"].AsObject().GetEnumerator();
-                        enumerator.MoveNext();
-                        var test2 = ((KeyValuePair<string, JsonNode>)enumerator.Current).Value["langlinks"][0]["*"];
-                        article.enlink = "https://en.wikipedia.org/wiki/" + test2;
-                    }
-
-
-                }
-                resultCollection.featuredList = popularArticles;
 
                 return resultCollection;
+
             }
 
-            public override string ToString()
-            {
-                string result = "Daily Data for " + date;
-                result += '\n' + "Featured articles: " + '\n';
-                foreach (FeaturedArticle iFeatured in featuredList)
-                {
-                    result += iFeatured.ToString() + '\n';
-                }
-                return result;
-            }
-
-            public string ToJSON()
-            {
-                return JsonSerializer.Serialize(this);
-            }
-
-            public class TableCollectionEntity:ITableEntity
-            {
-                public string PartitionKey { get; set; }
-                public string RowKey { get; set; }
-                public DateTimeOffset? Timestamp { get; set; }
-                public ETag ETag { get; set; }
-
-                public DailyCollection Collection { get; set; }
-            }
         }
 
         //a collection of processed data about one wiki for a single day
@@ -144,19 +108,6 @@ namespace WikiScraper
 
             public List<Article> articles { get; set; }
 
-            public override string ToString()
-            {
-                string result = $"{countrycode}.wikipedia.org was visisted {totalviews} times that day" + 
-                    + '\n' + "top 10 articles:";
-                int limit = articles.Count < 10 ? articles.Count : 10;
-                for (int i = 0; i < limit; i++)
-                {
-                    result += '\n';
-                    result += articles[i].name + '(' + articles[i].views + ')' + $"{articles[i].popularityIndex:F3}";
-                }
-                return result;
-            }
-
             /// <summary>
             /// build data collection about a single language wiki project
             /// </summary>
@@ -166,74 +117,104 @@ namespace WikiScraper
             /// <param name="_articles"></param>
             /// <param name="_keepMax"></param>
             /// <returns></returns>
-            public static DailyData BuildDailyData(
+            public static async Task<DailyData> BuildDailyData(
+                HttpClient _client, DateTime _date, 
                 string _countryCode, string[] _exceptions,
-                int _totalviews, JsonNode _articles,
                 int _keepMax)
             {
+                
+                int totalviews;
+                {
+                    var viewsString = await _client.GetStringAsync(
+                            "https://wikimedia.org/api/rest_v1/metrics/pageviews/" +
+                            $"aggregate/{_countryCode}.wikipedia.org/all-access/user/daily/" +
+                            $"{_date.Year}{_date.Month:D2}{_date.Day:D2}/{_date.Year}{_date.Month:D2}{_date.Day:D2}");
 
-                var result = new DailyData()
+                    totalviews = (int)JsonNode.Parse(viewsString).AsObject()["items"][0]["views"];
+                }
+
+                JsonArray articles;
+                {
+                    var articlesString = await _client.GetStringAsync(
+                           "https://wikimedia.org/api/rest_v1/metrics/pageviews/" +
+                           $"top/{_countryCode}.wikipedia.org/all-access/{_date.Year}/{_date.Month:D2}/{_date.Day:D2}");
+                    articles = JsonNode.Parse(articlesString).AsObject()["items"][0]["articles"].AsArray();
+                }
+
+                var resultData = new DailyData()
                 {
                     countrycode = _countryCode,
-                    totalviews = _totalviews,
+                    totalviews = totalviews,
                     articles = new List<Article>()
                 };
 
-                var articleArray = _articles.AsArray();
+                var articleArray = articles.AsArray();
 
-                for (int i = 0; i < articleArray.Count; i++)
+                int i = 0;
+                while (resultData.articles.Count < _keepMax && articleArray.Count > i)
                 {
                     var node = articleArray[i];
 
-                    var article = new Article()
+                    //if the article name is not on the exceptions list
+                    if (!_exceptions.Contains((string)node["article"].AsValue()))
                     {
-                        name = (string)node["article"].AsValue(),
-                        views = (int)node["views"].AsValue()
-                    };
 
-                    if (!_exceptions.Contains(article.name))
-                    {
-                        article.popularityIndex = calculatePopIndex(result.totalviews, article.views);
-                        result.articles.Add(article);
+                        var article = new Article()
+                        {
+                            ttl = (string)node["article"].AsValue(),
+                            vws = (int)node["views"].AsValue(),
+                            lngl = new Dictionary<string, ArticleLink>(),
+                            cde = _countryCode
+                        };
+                                            
+                        article.link = $"https://{_countryCode}.wikipedia.org/wiki/{article.ttl}";
+                        article.prc = 100f * article.vws / resultData.totalviews;
+
+                        var langlinkNode = await _client.GetStringAsync(
+                            $"https://{article.cde}.wikipedia.org/w/api.php?action=query&titles=" +
+                            $"{article.ttl}&prop=langlinks&format=json&lllang=en");
+                        var langlinkObject = JsonNode.Parse(langlinkNode).AsObject()["query"]["pages"];
+
+                        var articleID = JsonSerializer.Deserialize<Dictionary<string, JsonNode>>(langlinkObject).Keys.First();
+                        
+                        if (langlinkObject[articleID].AsObject().ContainsKey("langlinks"))
+                        {
+                            var entitle = langlinkObject[articleID]["langlinks"][0]["*"];
+                            article.lngl["en"] = new ArticleLink()
+                            {
+                                link = "https://en.wikipedia.org/wiki/" + entitle,
+                                title = (string)entitle
+                            };
+                        }
+
+                        resultData.articles.Add(article);
                     }
-
-                    if (result.articles.Count >= _keepMax)
-                        break;
+                    
+                    i++;
                 }
 
-                return result;
-            }
-
-            //what percentage out of total views this article takes
-            static float calculatePopIndex(int _totalViews, int _articleViews)
-            {
-                return 100f * _articleViews / (_totalViews);
+                return resultData;
             }
         }
+
         public class Article
         {
-            public string name { get; set; }
+            public string cde { get; set; }
 
-            public int views { get; set; }
+            public string ttl { get; set; }
 
-            public float popularityIndex { get; set; }
+            public string link { get; set; }
+
+            public int vws { get; set; }
+
+            public float prc { get; set; }
+
+            public Dictionary<string, ArticleLink> lngl { get; set; }
         }
-
-        public class FeaturedArticle : Article
+        public class ArticleLink
         {
-            public string countryCode { get; set; }
-
-            public string enlink { get; set; }
-
-            public string oglink { get; set; }
-
-            public override string ToString()
-            {
-                string result = $"{name} ({views}, {popularityIndex})" +'\n' +
-                    $"{oglink}" + '\n' +
-                    $"{enlink}";
-                return result;
-            }
+            public string title { get; set; }
+            public string link { get; set; }
         }
     }
 }

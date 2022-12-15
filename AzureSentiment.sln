@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TranslatorFunction", "Trans
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MyAnalyticsLibrary", "MyAnalyticsLibrary\MyAnalyticsLibrary.csproj", "{B69F8DF5-7AA9-4BD6-A83B-64D1492054F0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WikiScraper", "WikiScraper\WikiScraper.csproj", "{03AF0EF6-119F-4ADE-92CF-00BB5115C4EE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WikiScraper", "WikiScraper\WikiScraper.csproj", "{03AF0EF6-119F-4ADE-92CF-00BB5115C4EE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
