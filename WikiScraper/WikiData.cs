@@ -22,10 +22,16 @@ namespace WikiScraper
     //entry for daily data about wikipedia project with an article split
     public static class WikiData
     {
-        public class TotalCollection
+        public class MonthlyCollection
         {
             public Dictionary<string, DailyCollection> dailyData { get; set; }
+            public string date { get; set; }
 
+            public MonthlyCollection(string _date)
+            {
+                date = _date;
+                dailyData = new Dictionary<string, DailyCollection>();
+            }
             public string ToJSON()
             {
                 return JsonSerializer.Serialize(this, new JsonSerializerOptions()
@@ -39,58 +45,40 @@ namespace WikiScraper
         //collection of data for an entire day
         public class DailyCollection
         {
-            public List<DailyData> wikiDataList { get; set; }
+            public Dictionary<string, DailyData> wikiDataList { get; set; }
 
             public List<string> featuredList { get; set; }
-
-            public string date { get; set; }
 
             public async static Task<DailyCollection> BuildCollection(
                DateTime _date, string[] _countryCodes, Dictionary<string, List<string>> _exceptions, HttpClient _client)
             {
                 var resultCollection = new DailyCollection()
                 {
-                    wikiDataList = new List<DailyData>(),
+                    wikiDataList = new Dictionary<string, DailyData>(),
                     featuredList = new List<string>(),
-                    date = $"{_date.Year}{_date.Month:D2}{_date.Day:D2}"
                 };
 
-                foreach (string iCountry in _countryCodes)
-                {
+                var dailyData = await Task.WhenAll(_countryCodes.Select(
+                    iCountry => DailyData.BuildDailyData(
+                        _client, _date, iCountry, _exceptions[iCountry].ToArray(), 3)));
 
-                    //var viewsString = await _client.GetStringAsync(
-                        //"https://wikimedia.org/api/rest_v1/metrics/pageviews/" +
-                        //$"aggregate/{iCountry}.wikipedia.org/all-access/user/daily/" +
-                        //$"{_date.Year}{_date.Month:D2}{_date.Day:D2}/{_date.Year}{_date.Month:D2}{_date.Day:D2}");
-                    //var viewsObj = JsonNode.Parse(viewsString).AsObject();
-                    //var totalviews = viewsObj["items"][0]["views"];
-
-                    //REST request:
-                    //wikimedia.org/api/rest_v1/metrics/pageviews/aggregate/ru.wikipedia.org/all-access/user/daily/20221120/20221120
-                    //var articlesString = await _client.GetStringAsync(
-                        //"https://wikimedia.org/api/rest_v1/metrics/pageviews/" +
-                        //$"top/{iCountry}.wikipedia.org/all-access/{_date.Year}/{_date.Month:D2}/{_date.Day:D2}");
-
-                    //var articlesObj = JsonNode.Parse(articlesString).AsObject();
-                    //var articles = articlesObj["items"][0]["articles"];
-
-                    resultCollection.wikiDataList.Add(
-                        await DailyData.BuildDailyData(_client, _date, iCountry, _exceptions[iCountry].ToArray(), 5));
-                }
+                dailyData.ToList().ForEach(x => resultCollection.wikiDataList[x.countrycode] = x);
 
                 int topAmount = 3;
-                var highlights = new string[topAmount];
 
-                var topArticles = new List<Article>();
+                var topArticles = new List<(Article article, string code)>();
 
-                resultCollection.wikiDataList.ForEach(iDaily => topArticles.Add(iDaily.articles[0]));
+                //collect all top articles from the collections with their countries
+                resultCollection.wikiDataList.Values.ToList().ForEach(
+                    iDaily => topArticles.Add((iDaily.articles[0], iDaily.countrycode)));
 
 
-                //order articles by popularity and flip em
-                topArticles = topArticles.OrderBy(article => article.prc).Reverse().ToList().
+                //order articles by popularity, get top entries
+                topArticles = topArticles.OrderBy(articleTuple => articleTuple.article.prc).Reverse().ToList().
                     GetRange(0, Math.Min(topAmount, topArticles.Count));
 
-                topArticles.ForEach(article => resultCollection.featuredList.Add(article.cde));
+                //collect the codes from the top entries
+                topArticles.ForEach(articleTuple => resultCollection.featuredList.Add(articleTuple.code));
 
 
                 return resultCollection;
@@ -122,7 +110,18 @@ namespace WikiScraper
                 string _countryCode, string[] _exceptions,
                 int _keepMax)
             {
-                
+                try
+                {
+                    var debug = await _client.GetStringAsync(
+                                "https://wikimedia.org/api/rest_v1/metrics/pageviews/" +
+                                $"aggregate/{_countryCode}.wikipedia.org/all-access/user/daily/" +
+                                $"{_date.Year}{_date.Month:D2}{_date.Day:D2}/{_date.Year}{_date.Month:D2}45");
+                }
+                catch (HttpRequestException e)
+                {
+                    var sdf = e.ToString();
+                }
+                int debug2 = 13;
                 int totalviews;
                 {
                     var viewsString = await _client.GetStringAsync(
@@ -163,15 +162,15 @@ namespace WikiScraper
                         {
                             ttl = (string)node["article"].AsValue(),
                             vws = (int)node["views"].AsValue(),
-                            lngl = new Dictionary<string, ArticleLink>(),
-                            cde = _countryCode
+                            lngl = new Dictionary<string, string>(),
+                            //cde = _countryCode
                         };
                                             
-                        article.link = $"https://{_countryCode}.wikipedia.org/wiki/{article.ttl}";
+                        //article.link = $"https://{_countryCode}.wikipedia.org/wiki/{article.ttl}";
                         article.prc = 100f * article.vws / resultData.totalviews;
 
                         var langlinkNode = await _client.GetStringAsync(
-                            $"https://{article.cde}.wikipedia.org/w/api.php?action=query&titles=" +
+                            $"https://{_countryCode}.wikipedia.org/w/api.php?action=query&titles=" +
                             $"{article.ttl}&prop=langlinks&format=json&lllang=en");
                         var langlinkObject = JsonNode.Parse(langlinkNode).AsObject()["query"]["pages"];
 
@@ -179,12 +178,7 @@ namespace WikiScraper
                         
                         if (langlinkObject[articleID].AsObject().ContainsKey("langlinks"))
                         {
-                            var entitle = langlinkObject[articleID]["langlinks"][0]["*"];
-                            article.lngl["en"] = new ArticleLink()
-                            {
-                                link = "https://en.wikipedia.org/wiki/" + entitle,
-                                title = (string)entitle
-                            };
+                            article.lngl["en"] = (string)langlinkObject[articleID]["langlinks"][0]["*"];
                         }
 
                         resultData.articles.Add(article);
@@ -199,22 +193,17 @@ namespace WikiScraper
 
         public class Article
         {
-            public string cde { get; set; }
+            //public string cde { get; set; }
 
             public string ttl { get; set; }
 
-            public string link { get; set; }
+            //public string link { get; set; }
 
             public int vws { get; set; }
 
             public float prc { get; set; }
 
-            public Dictionary<string, ArticleLink> lngl { get; set; }
-        }
-        public class ArticleLink
-        {
-            public string title { get; set; }
-            public string link { get; set; }
+            public Dictionary<string, string> lngl { get; set; }
         }
     }
 }
