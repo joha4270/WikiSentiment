@@ -31,7 +31,7 @@ namespace TranslatorFunction
 
             var analyticsClient = new TextAnalyticsClient(endpoint, credentials);
 
-            var entry = JsonSerializer.Deserialize<AnalyticsEntry>(triggerMessage);
+            //var entry = JsonSerializer.Deserialize<AnalyticsEntry>(triggerMessage);
 
             try
             {

@@ -3,9 +3,9 @@ using Microsoft.Extensions.Configuration;
 using System.IO;
 using Microsoft.Extensions.DependencyInjection;
 
-[assembly: FunctionsStartup(typeof(WikiScraper.Startup))]
+[assembly: FunctionsStartup(typeof(WikiSentiment.Startup))]
 
-namespace WikiScraper
+namespace WikiSentiment
 {
     public class Startup : FunctionsStartup
     {

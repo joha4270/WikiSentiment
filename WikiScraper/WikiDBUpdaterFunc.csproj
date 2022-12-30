@@ -12,6 +12,9 @@
     <PackageReference Include="Octokit" Version="4.0.3" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\MyAnalyticsLibrary\WikiSentiment.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
