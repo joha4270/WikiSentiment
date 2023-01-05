@@ -1,9 +1,0 @@
-{
-  "profiles": {
-    "WikiDBUpdaterTimer": {
-      "commandName": "Project",
-      "commandLineArgs": "--port 7046",
-      "launchBrowser": false
-    }
-  }
-}
