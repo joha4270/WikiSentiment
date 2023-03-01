@@ -10,7 +10,7 @@ namespace WikiSentiment.DataObjects
     //POJO for collection of articles in single language
     public class LanguageCollection
     {
-        public string countrycode { get; set; }
+        public string languageCode { get; set; }
 
         public int totalviews { get; set; }
 
@@ -64,7 +64,7 @@ namespace WikiSentiment.DataObjects
 
             return new LanguageCollection()
             {
-                countrycode = _languageCode,
+                languageCode = _languageCode,
                 totalviews = totalviews,
                 articles = createdArticles.Values.ToList()
             };

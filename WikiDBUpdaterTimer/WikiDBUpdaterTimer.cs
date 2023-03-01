@@ -35,23 +35,14 @@ namespace WikiDBUpdaterTimer
 
             articleExceptions = config.GetValue<Dictionary<string, string[]>>("FunctionValues:CountryExceptions");
             allLanguageCodes = config.GetValue<string[]>("FunctionValues:CountryCodes");
+            //articleExceptions = getLanguageExceptions(config);
 
             var date = DateTime.Now.AddDays(-1);
             bool discardOldData = true;
             int daysToUpdate = 1;
 
-            //update yesterday
-            var dbClient = new AzureStorageClient(tableClient);
             await DBUpdates.updateDatabase(date, daysToUpdate, discardOldData, allLanguageCodes, 
-                articleExceptions, getHttpClient(config, log), dbClient, log);
-
-            //update if previous day is missing in the database (wikipedia is sometimes late with updates)
-            date = DateTime.Now.AddDays(-1);
-            if (await dbClient.Load(date) == "")
-            {
-                await DBUpdates.updateDatabase(date, daysToUpdate, discardOldData, allLanguageCodes,
-                articleExceptions, getHttpClient(config, log), dbClient, log);
-            }
+                articleExceptions, getHttpClient(config, log), new AzureStorageClient(tableClient), log);
         }
 
         HttpClient getHttpClient(ConfigurationWrapper _config, ILogger log)
