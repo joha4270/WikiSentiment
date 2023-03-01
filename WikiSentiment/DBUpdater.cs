@@ -34,7 +34,17 @@ namespace WikiSentiment
                 if (!_discardOldEntries)
                 {
                     var dbRequest = await _dbClient.Load(_date);
-                    var oldDaily = JsonSerializer.Deserialize<DailyCollection>(dbRequest);
+                    DailyCollection? oldDaily = null;
+                    try
+                    {
+                        oldDaily = JsonSerializer.Deserialize<DailyCollection>(dbRequest);
+                    }
+                    catch (Exception _e)
+                    {
+                        _logger.LogError($"Error reading previous data, overwriting it " +
+                            $"{_date.Year}-{_date.Month}-{_date.Day:D2}: "+ $"{_e.ToString()}");
+                    }
+
                     if (oldDaily != null && oldDaily.IsValid())
                         newCollection = DailyCollection.UpdateGiven(oldDaily, newCollection);
                 }
