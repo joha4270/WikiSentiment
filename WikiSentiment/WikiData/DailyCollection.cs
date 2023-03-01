@@ -18,7 +18,7 @@ namespace WikiSentiment.DataObjects
 
         const int keepArticles = 5;  //amount of articles to keep for each language
 
-        public Dictionary<string, LanguageCollection> languagesDailyDict { get; set; }
+        public Dictionary<string, LanguageCollection> countrydailydict { get; set; }
 
         public List<string> featuredlist { get; set; }
 
@@ -59,7 +59,7 @@ namespace WikiSentiment.DataObjects
 
             return new DailyCollection()
             {
-                languagesDailyDict = regionalCollections,
+                countrydailydict = regionalCollections,
                 featuredlist = featuredCountries
             }; ;
         }
@@ -72,18 +72,18 @@ namespace WikiSentiment.DataObjects
         /// <returns></returns>
         public static DailyCollection UpdateGiven(DailyCollection _base, DailyCollection _newAdditions)
         {
-            var newCollection = new Dictionary<string, LanguageCollection>(_base.languagesDailyDict);
+            var newCollection = new Dictionary<string, LanguageCollection>(_base.countrydailydict);
 
             //override old data with new ones
-            foreach(string iCountry in _newAdditions.languagesDailyDict.Keys)
+            foreach(string iCountry in _newAdditions.countrydailydict.Keys)
             {
-                newCollection[iCountry] = _newAdditions.languagesDailyDict[iCountry];
+                newCollection[iCountry] = _newAdditions.countrydailydict[iCountry];
             }
             var featured = getFeaturedCountries(newCollection, featureArticles);
 
             return new DailyCollection()
             {
-                languagesDailyDict = newCollection,
+                countrydailydict = newCollection,
                 featuredlist = featured
             };
         }
@@ -129,7 +129,7 @@ namespace WikiSentiment.DataObjects
 
         public bool IsValid()
         {
-            return languagesDailyDict != null && languagesDailyDict.Count > 0;
+            return countrydailydict != null && countrydailydict.Count > 0;
         }
     }
 }
