@@ -1,0 +1,42 @@
+﻿{
+  "FunctionValues": {
+    "CountryCodes": [ "en", "ar", "de", "es", "fr", "it", "ja", "nl", "pl", "pt", "sv", "uk", "vi", "zh", "ru" ],
+    "CountryExceptions": {
+      "en": [ "main_page" ],
+      "ar": [ "الصفحة_الرئيسية", "خاص:بحث", "خاص:" ],
+      "de": [ "hauptseite", "benutzer:", "datei:" ],
+      "es": [],
+      "fr": [ "cookie_(informatique)" ],
+      "it": [ "pagina_principale" ],
+      "ja": [ "メインページ", "特別:検索" ],
+      "nl": [ "hoofdpagina" ],
+      "pl": [ "Strona_główna" ],
+      "pt": [],
+      "sv": [],
+      "uk": [ "головна_сторінка", "спеціальна:", "заглавная_страница" ],
+      "vi": [ "trang_chính", "đài_tiếng_nói_việt_nam", "đặc_biệt:" ],
+      "zh": [ "特別:" ],
+      "ru": [ "заглавная_страница", "служебная:" ],
+      "all": [
+        "file:",
+        "user:",
+        "wikipedia:",
+        "special:",
+        "spezial:",
+        "speciaal:",
+        "especial:",
+        "wikipédia:",
+        "topic:",
+        "spécial:",
+        "speciale:",
+        "specjalna:",
+        "portal:",
+        "sp?cial:",
+        "template:",
+        ".svg",
+        ".jpg",
+        ".ogg"
+      ]
+    }
+  }
+}
